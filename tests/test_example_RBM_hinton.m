@@ -27,6 +27,8 @@ opts = expandOpts(opts,numel(dbn.sizes));
 dbn = dbnsetup(dbn, batchdata2, opts);
 dbn = dbntrain(dbn, batchdata2);
 
-save('dbn.mat','dbn');
 
+load mnistvh;
+assert(isequal(dbn.rbm{1}.W',vishid));
+disp(isequal(dbn.rbm{1}.W',vishid));
 end
