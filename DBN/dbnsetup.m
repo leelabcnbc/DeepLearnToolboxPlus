@@ -44,8 +44,21 @@ function dbn = dbnsetup(dbn, x, opts)
             dbn.rbm{u}.batchOrderFixed = false; %never that
         end
         
+        if isfield(opts,'sparsityTarget')
+            dbn.rbm{u}.sparsityTarget = opts.sparsityTarget(u);
+        else
+            dbn.rbm{u}.sparsityTarget = NaN; %no meaning
+        end
         
-        dbn.rbm{u}.types = {dbn.types(u + 1),  dbn.types(u)};
+        
+        if isfield(opts,'nonSparsityPenalty')
+            dbn.rbm{u}.nonSparsityPenalty = opts.nonSparsityPenalty(u);
+        else
+            dbn.rbm{u}.nonSparsityPenalty = 0; %no sparsity penalty
+        end
+        
+        
+        dbn.rbm{u}.types = {dbn.types{u + 1},  dbn.types{u}};
 
         dbn.rbm{u}.W  = zeros(dbn.sizes(u + 1), dbn.sizes(u));
         dbn.rbm{u}.vW = zeros(dbn.sizes(u + 1), dbn.sizes(u));
