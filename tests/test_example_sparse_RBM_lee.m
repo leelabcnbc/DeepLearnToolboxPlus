@@ -1,59 +1,42 @@
 function test_example_sparse_RBM_lee()
-% load mnist_uint8;
-% 
-% train_x = double(train_x) / 255;
-% test_x  = double(test_x)  / 255;
-% train_y = double(train_y);
-% test_y  = double(test_y);
+load mnist_real_stanford;
 
-load hinton_2006_mnist_train;
-%%  ex1 train a 100 hidden unit RBM and visualize its weights
-rng(0,'twister'); % reset random state to get reproducible results.
-% dbn.sizes = [1000 500 250];
-% dbn.types = {'binary','binary','binary','binary'};
+train_x = trainData;
+test_x  = testData;
+train_y = trainLabelsFull;
+test_y  = testLabelsFull;
 
-dbn.sizes = [1000 500 250 30];
-dbn.types = {'binary','binary','binary','binary','gaussian'};
+% train_x = rand(60000,784); 
+% [train_x_pca, unwhitenMatrix, M] = preprocessing.whiten_PCA(train_x,epsilon);
+% K = 400;
+% train_x_pca = train_x_pca(:,1:K);
+% unwhitenMatrix = unwhitenMatrix(1:K,:);
+% train_x_pca_reconstruct = bsxfun(@plus,train_x_pca*unwhitenMatrix, M);
 
-opts.numepochs =   5;
-opts.batchsize =  100; 
+dbn.sizes = [200];
+dbn.types = {'binary','binary'};
+
+opts.numepochs =   50;
+opts.batchsize =  1000; 
 opts.momentum  =   0.5;
 % opts.alpha     =   0.1;
-opts.alpha     =   [0.1 0.1 0.1 0.001];
+opts.alpha     =   [0.1];
 
-opts.weightPenaltyL2 = 0.0002; % L2 penalty
+opts.weightPenaltyL2 = 3e-3; % L2 penalty
 opts.momentumFinal  = 0.9; % momentum in the later stages
-opts.epochFinal = 5; % when to change the alpha for momentum
+opts.epochFinal = 10; % when to change the alpha for momentum
 opts.batchOrderFixed = true;
 
-opts.sparsityTarget = 0.05; % the target p in Honglak Lee's paper.
-opts.nonSparsityPenalty = 10; % the constant (or lambda) in Lee's paper.
+opts.sparsityTarget = 0.1; % the target p in Honglak Lee's paper.
+opts.nonSparsityPenalty = 20; % the constant (or lambda) in Lee's paper.
 
 
 opts = expandOpts(opts,numel(dbn.sizes));
 
-dbn = dbnsetup(dbn, batchdata2, opts);
-dbn = dbntrain(dbn, batchdata2);
+dbn = dbnsetup(dbn, train_x, opts);
+dbn = dbntrain(dbn, train_x);
 
-
-load mnistvh 
-load mnisthp
-load mnisthp2
-assert(isequal(dbn.rbm{1}.W,vishid'));
-assert(isequal(dbn.rbm{1}.b,visbiases'));
-assert(isequal(dbn.rbm{1}.c,hidrecbiases'));
-assert(isequal(dbn.rbm{2}.W,hidpen'));
-assert(isequal(dbn.rbm{2}.b,hidgenbiases'));
-assert(isequal(dbn.rbm{2}.c,penrecbiases'));
-assert(isequal(dbn.rbm{3}.W,hidpen2'));
-assert(isequal(dbn.rbm{3}.b,hidgenbiases2'));
-assert(isequal(dbn.rbm{3}.c,penrecbiases2'));
-
-load mnistpo
-assert(isequal(dbn.rbm{4}.W,hidtop'));
-assert(isequal(dbn.rbm{4}.b,topgenbiases'));
-assert(isequal(dbn.rbm{4}.c,toprecbiases'));
-
-fprintf('all pass!\n');
+dW = dbn.rbm{1}.W;
+visualize(dW');
 
 end
