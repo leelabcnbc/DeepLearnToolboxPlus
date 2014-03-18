@@ -1,6 +1,11 @@
-function rbm = rbmtrain(rbm, x)
+function rbm = rbmtrain(rbm, x, hintonFlag, saveFlag, fileName)
 assert(isfloat(x), 'x must be a float');
 % assert(all(x(:)>=0) && all(x(:)<=1), 'all data in x must be in [0:1]');
+
+if nargin < 4
+    saveFlag = false;
+end
+
 m = size(x, 1);
 
 numbatches = m / rbm.batchsize;
@@ -9,10 +14,18 @@ assert(rem(numbatches, 1) == 0, 'numbatches not integer');
 
 % can be commented out
 
+if nargin < 3
+    hintonFlag = false;
+end
+
+
 % add an initialization phase.
 rbm.W = 0.1*randn(size(rbm.W,2),size(rbm.W,1))'; % follow the initialization of hinton
-rbm.xlast = cell(numbatches,1);
 
+
+if hintonFlag
+    rbm.xlast = cell(numbatches,1);
+end
 
 gaussianLayerCount = 0;
 for i = 1:2
@@ -24,8 +37,7 @@ for i = 1:2
 end
 assert(gaussianLayerCount<=1);
 
-
-
+sigma = rbm.sigma;
 
 for i = 1 : rbm.numepochs
     
@@ -46,13 +58,15 @@ for i = 1 : rbm.numepochs
         v1 = batch;
         
         if isequal(rbm.types{1},'binary')
-            h1 = sigm(v1 * rbm.W' + repmat(rbm.c', rbm.batchsize, 1));
+            h1 = sigm(  (1/(sigma^2))  *  (v1 * rbm.W' + repmat(rbm.c', rbm.batchsize, 1) )     );
             %             h1 = sigmrnd(v1 * rbm.W' + repmat(rbm.c', rbm.batchsize, 1));
         else
             h1 = v1 * rbm.W' + repmat(rbm.c', rbm.batchsize, 1);
         end
-        
-        rbm.xlast{l} = h1;
+          
+        if hintonFlag % save last states, to match hinton
+            rbm.xlast{l} = h1;
+        end
         
         c1 = (v1'*h1)'; % positive statistics.
         
@@ -61,24 +75,6 @@ for i = 1 : rbm.numepochs
         
         poshidact   = sum(h1);
         posvisact = sum(batch);
-        
-        if isfield(rbm, 'nonSparsityPenalty') && rbm.nonSparsityPenalty~=0
-            assert(isfield(rbm,'sparsityTarget'));
-            assert(isequal(rbm.types{1},'binary')); % only works for binary hidden layer
-            sparsityGradientSecondTerm = sum(h1.*(1-h1),1);
-            sparsityGradientFirstTerm = (rbm.sparsityTarget - mean(h1,1));
-            %             fprintf('activation: %f\n',mean(h1(:)));
-            % debug
-            %             h11 = h1(:,1);
-            %             sparsityGradientFirstTerm1 = (rbm.sparsityTarget - mean(h11));
-            %
-            %             sparsityGradientSecondTerm1 = sum(h11.*(1-h11));
-            %             disp(abs(sparsityGradientSecondTerm1-sparsityGradientSecondTerm(1)));
-            %             disp(abs(sparsityGradientFirstTerm1-sparsityGradientFirstTerm(1)));
-            sparsity = sparsity + mean(h1(:));
-        end
-        
-        
         
         if isequal(rbm.types{1},'binary')
             h1Sampled = h1 > rand(size(h1));
@@ -90,15 +86,18 @@ for i = 1 : rbm.numepochs
         
         % reconstruction
         if isequal(rbm.types{2},'binary')
-            v2 = sigm(h1Sampled * rbm.W+repmat(rbm.b', rbm.batchsize, 1));
+            v2 = sigm(  (1/(sigma^2))*    (h1Sampled * rbm.W+repmat(rbm.b', rbm.batchsize, 1))         );
             %             v2 = sigmrnd(h1Sampled * rbm.W+repmat(rbm.b', rbm.batchsize, 1));
         else
             v2 = h1Sampled * rbm.W+repmat(rbm.b', rbm.batchsize, 1);
+            % let's try sampled version...
+%             v2 = h1Sampled * rbm.W+repmat(rbm.b', rbm.batchsize, 1)...
+                + (sigma^2)*randn(rbm.batchsize, size(rbm.W,2)) ;
         end
         
         
         if isequal(rbm.types{1},'binary')
-            h2 = sigm(v2 * rbm.W' + repmat(rbm.c', rbm.batchsize, 1));
+            h2 = sigm(   (1/(sigma^2)) *(v2 * rbm.W' + repmat(rbm.c', rbm.batchsize, 1))     );
         else
             h2 = v2 * rbm.W' + repmat(rbm.c', rbm.batchsize, 1);
         end
@@ -111,36 +110,91 @@ for i = 1 : rbm.numepochs
         
         if i > rbm.epochFinal
             momentum=rbm.momentumFinal;
+            alpha = rbm.alphaFinal;
         else
             momentum=rbm.momentum;
+            alpha = rbm.alpha;
         end
         
         neghidact = sum(h2);
         negvisact = sum(v2);
         
-        rbm.vW = momentum * rbm.vW + rbm.alpha * ((c1 - c2)/rbm.batchsize - rbm.weightPenaltyL2*rbm.W);
-        rbm.vb = momentum * rbm.vb + rbm.alpha/rbm.batchsize * ((posvisact-negvisact)');
+        rbm.vW = momentum * rbm.vW + alpha * ((c1 - c2)/rbm.batchsize - rbm.weightPenaltyL2*rbm.W);
+        rbm.vb = momentum * rbm.vb + alpha/rbm.batchsize * ((posvisact-negvisact)');
         % put division first, so that we may have better accuracy?
-        rbm.vc = momentum * rbm.vc + rbm.alpha/rbm.batchsize * ((poshidact-neghidact)');
+        rbm.vc = momentum * rbm.vc + alpha/rbm.batchsize * ((poshidact-neghidact)');
+        
+        
+        assert(all(~isnan(rbm.vW(:))));
+        assert(all(~isnan(rbm.vb(:))));
+        assert(all(~isnan(rbm.vc(:))));
         
         rbm.W = rbm.W + rbm.vW;
         rbm.b = rbm.b + rbm.vb;
         rbm.c = rbm.c + rbm.vc;
         
-        if isfield(rbm, 'nonSparsityPenalty') && rbm.nonSparsityPenalty~=0
-            rbm.c = rbm.c + (rbm.nonSparsityPenalty/rbm.batchsize) *...
-                (sparsityGradientFirstTerm.*sparsityGradientSecondTerm)';
-        end
+        
+        
         
         err = err + sum(sum((v1 - v2) .^ 2)) / rbm.batchsize;
         
-        
-        
     end
     
+    if i > rbm.epochFinal
+        fprintf('finally!, with alpha %f, momentum %f\n', alpha, momentum);
+    else
+        fprintf('initial!, with alpha %f, momentum %f\n', alpha, momentum);
+    end
+    
+    if isfield(rbm, 'nonSparsityPenalty') && rbm.nonSparsityPenalty~=0
+        assert(isfield(rbm,'sparsityTarget'));
+        assert(isequal(rbm.types{1},'binary')); % only works for binary hidden layer
+        v1All = x;
+        
+        if isequal(rbm.types{1},'binary')
+            h1All = sigm( (1/(sigma^2))  *  (v1All * rbm.W' + repmat(rbm.c', m, 1) )     );
+        else
+            h1All = v1All * rbm.W' + repmat(rbm.c', m, 1);
+        end
+        
+%         sparsityGradientSecondTerm = sum(h1All.*(1-h1All),1);
+        sparsityGradientFirstTerm = (rbm.sparsityTarget - mean(h1All,1));
+        sparsity = mean(h1All(:));
+        if isnan(sparsity)
+            fprintf('what the fuck!\n');
+        end
+    end
+    
+    
+    if isfield(rbm, 'nonSparsityPenalty') && rbm.nonSparsityPenalty~=0
+%         rbm.c = rbm.c + (rbm.nonSparsityPenalty/m) *...
+%             (sparsityGradientFirstTerm.*sparsityGradientSecondTerm)';
+        fprintf('simple form!\n');
+        rbm.c = rbm.c + (rbm.nonSparsityPenalty) *... %no 1/m
+            (sparsityGradientFirstTerm)';
+    end
+
+    fprintf('sigma %f\n',sigma);
+    
+    rbm.sigmaFinal = sigma; % save the current sigma...
+    
+    if sigma > rbm.sigmaMin % sigma decay in Honglak
+        sigma = sigma*rbm.sigmaDecay; %sigmaDecay is 1 by default.
+    end
+
     disp(['epoch ' num2str(i) '/' num2str(rbm.numepochs)  '. Average reconstruction error is: ' num2str(err / numbatches)]);
     if isfield(rbm, 'nonSparsityPenalty') && rbm.nonSparsityPenalty~=0
-        fprintf('sparsity is %f\n', sparsity/numbatches);
+        fprintf('sparsity is %f\n', sparsity);
     end
+    
+    
+    if saveFlag
+        errAvg = err / numbatches;
+        save(fileName,'rbm','sparsity','i','errAvg');
+    end
+    
 end
+
+
+
 end

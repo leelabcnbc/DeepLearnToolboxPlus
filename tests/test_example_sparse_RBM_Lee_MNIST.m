@@ -1,5 +1,7 @@
-function test_example_sparse_RBM_lee()
+function test_example_sparse_RBM_Lee_MNIST()
 load mnist_real_stanford;
+
+rng(0,'twister'); %reproducible...
 
 train_x = trainData;
 test_x  = testData;
@@ -14,29 +16,32 @@ test_y  = testLabelsFull;
 % train_x_pca_reconstruct = bsxfun(@plus,train_x_pca*unwhitenMatrix, M);
 
 dbn.sizes = [200];
-dbn.types = {'binary','binary'};
-
+dbn.types = {'gaussian','binary'};
 opts.numepochs =   50;
-opts.batchsize =  1000; 
+opts.batchsize =  500; 
 opts.momentum  =   0.5;
-% opts.alpha     =   0.1;
-opts.alpha     =   [0.1];
+opts.alpha     =   0.01;
 
 opts.weightPenaltyL2 = 3e-3; % L2 penalty
 opts.momentumFinal  = 0.9; % momentum in the later stages
 opts.epochFinal = 10; % when to change the alpha for momentum
-opts.batchOrderFixed = true;
+opts.batchOrderFixed = false;
 
 opts.sparsityTarget = 0.1; % the target p in Honglak Lee's paper.
-opts.nonSparsityPenalty = 20; % the constant (or lambda) in Lee's paper.
+opts.nonSparsityPenalty = 3; % the constant (or lambda) in Lee's paper.
 
+opts.sigma = 0.5; % default 1.
+opts.sigmaDecay = 0.99; % default 1.
+opts.sigmaMin = 0.05; % default 1.
 
 opts = expandOpts(opts,numel(dbn.sizes));
 
 dbn = dbnsetup(dbn, train_x, opts);
 dbn = dbntrain(dbn, train_x);
 
-dW = dbn.rbm{1}.W;
-visualize(dW');
+reference = load('dbn_mnist_lee.mat','dbn','opts');
+
+assert(isequal(reference.dbn,dbn));
+assert(isequal(reference.opts,opts));
 
 end

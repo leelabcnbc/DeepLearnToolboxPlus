@@ -29,7 +29,13 @@ function dbn = dbnsetup(dbn, x, opts)
         if isfield(opts,'momentumFinal') 
             dbn.rbm{u}.momentumFinal = opts.momentumFinal(u);
         else
-            dbn.rbm{u}.momentumFinal = NaN; %never that
+            dbn.rbm{u}.momentumFinal = dbn.rbm{u}.momentum; %keep the old momentum
+        end
+        
+        if isfield(opts,'alphaFinal') 
+            dbn.rbm{u}.alphaFinal = opts.alphaFinal(u);
+        else
+            dbn.rbm{u}.alphaFinal = dbn.rbm{u}.alpha; %keep the old alpha
         end
         
         if isfield(opts,'epochFinal') 
@@ -55,6 +61,24 @@ function dbn = dbnsetup(dbn, x, opts)
             dbn.rbm{u}.nonSparsityPenalty = opts.nonSparsityPenalty(u);
         else
             dbn.rbm{u}.nonSparsityPenalty = 0; %no sparsity penalty
+        end
+        
+        if isfield(opts,'sigma')
+            dbn.rbm{u}.sigma = opts.sigma(u);
+        else
+            dbn.rbm{u}.sigma = 1; %no scaling
+        end
+        
+        if isfield(opts,'sigmaDecay')
+            dbn.rbm{u}.sigmaDecay = opts.sigmaDecay(u);
+        else
+            dbn.rbm{u}.sigmaDecay = 1; %no sigma decay
+        end
+        
+        if isfield(opts,'sigmaMin')
+            dbn.rbm{u}.sigmaMin = opts.sigmaMin(u);
+        else
+            dbn.rbm{u}.sigmaMin = inf; %never do decay
         end
         
         
