@@ -1,10 +1,15 @@
-function x = rbmup(rbm, x)
+function x = rbmup(rbm, x, sigmaNew)
 
 if isfield(rbm,'sigmaFinal')
     sigma = rbm.sigmaFinal;
 else
     sigma = 1;
 end
+
+if nargin >= 3 && ~isempty(sigmaNew)
+    sigma = sigmaNew;
+end
+
 m = size(x, 1);
 
 if isequal(rbm.types{1},'binary')
