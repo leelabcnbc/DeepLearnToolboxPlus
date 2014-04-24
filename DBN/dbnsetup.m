@@ -88,6 +88,27 @@ function dbn = dbnsetup(dbn, x, opts)
             dbn.rbm{u}.CDIter = 1; 
         end
         
+        if isfield(opts,'lateralVisible')  % in default, use CD-1.
+            dbn.rbm{u}.lateralVisible = opts.lateralVisible(u);
+            
+            
+            if isfield(opts,'lateralVisibleMFIter')
+                dbn.rbm{u}.lateralVisibleMFIter = opts.lateralVisibleMFIter(u);
+            else
+                dbn.rbm{u}.lateralVisibleMFIter = 10; % value in Ruslan's MF code
+            end
+            
+            
+            if isfield(opts,'lateralVisibleMFDamp')
+                dbn.rbm{u}.lateralVisibleMFDamp = opts.lateralVisibleMFDamp(u);
+            else
+                dbn.rbm{u}.lateralVisibleMFDamp = 0.2; % value in Hinton's semi RBM paper.
+            end
+        else
+            dbn.rbm{u}.lateralVisible = false; % by default, no lateral. 
+        end
+        
+        
         dbn.rbm{u}.types = {dbn.types{u + 1},  dbn.types{u}};
 
         dbn.rbm{u}.W  = zeros(dbn.sizes(u + 1), dbn.sizes(u));
@@ -98,6 +119,12 @@ function dbn = dbnsetup(dbn, x, opts)
 
         dbn.rbm{u}.c  = zeros(dbn.sizes(u + 1), 1);
         dbn.rbm{u}.vc = zeros(dbn.sizes(u + 1), 1);
+        
+        if isfield(dbn.rbm{u},'lateralVisible') && dbn.rbm{u}.lateralVisible
+            dbn.rbm{u}.LV = zeros(dbn.sizes(u),dbn.sizes(u));
+            dbn.rbm{u}.vLV = zeros(dbn.sizes(u),dbn.sizes(u));
+        end
+        
     end
 
 end
