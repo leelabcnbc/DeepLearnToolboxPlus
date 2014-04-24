@@ -82,6 +82,12 @@ function dbn = dbnsetup(dbn, x, opts)
         end
         
         
+        if isfield(opts,'CDIter')  % in default, use CD-1.
+            dbn.rbm{u}.CDIter = opts.CDIter(u);
+        else
+            dbn.rbm{u}.CDIter = 1; 
+        end
+        
         dbn.rbm{u}.types = {dbn.types{u + 1},  dbn.types{u}};
 
         dbn.rbm{u}.W  = zeros(dbn.sizes(u + 1), dbn.sizes(u));

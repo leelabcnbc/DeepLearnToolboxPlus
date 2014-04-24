@@ -26,6 +26,8 @@ opts.momentumFinal  = 0.9; % momentum in the later stages
 opts.epochFinal = 5; % when to change the alpha for momentum
 opts.batchOrderFixed = true;
 
+% opts.CDIter = 1; % you can uncomment this, but it's the same.
+
 opts = expandOpts(opts,numel(dbn.sizes));
 
 dbn = dbnsetup(dbn, batchdata2, opts);

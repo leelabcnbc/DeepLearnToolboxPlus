@@ -63,7 +63,7 @@ for i = 1 : rbm.numepochs
         else
             h1 = v1 * rbm.W' + repmat(rbm.c', rbm.batchsize, 1);
         end
-          
+        
         if hintonFlag % save last states, to match hinton
             rbm.xlast{l} = h1;
         end
@@ -76,30 +76,41 @@ for i = 1 : rbm.numepochs
         poshidact   = sum(h1);
         posvisact = sum(batch);
         
-        if isequal(rbm.types{1},'binary')
-            h1Sampled = h1 > rand(size(h1));
-            %             h1Sampled = h1;
-        else
-            h1Sampled = h1 + randn(size(h1));
-        end
+        h2 = h1;
         
-        
-        % reconstruction
-        if isequal(rbm.types{2},'binary')
-            v2 = sigm(  (1/(sigma^2))*    (h1Sampled * rbm.W+repmat(rbm.b', rbm.batchsize, 1))         );
-            %             v2 = sigmrnd(h1Sampled * rbm.W+repmat(rbm.b', rbm.batchsize, 1));
-        else
-            v2 = h1Sampled * rbm.W+repmat(rbm.b', rbm.batchsize, 1);
-            % let's try sampled version...
-%             v2 = h1Sampled * rbm.W+repmat(rbm.b', rbm.batchsize, 1)...
-                + (sigma^2)*randn(rbm.batchsize, size(rbm.W,2)) ;
-        end
-        
-        
-        if isequal(rbm.types{1},'binary')
-            h2 = sigm(   (1/(sigma^2)) *(v2 * rbm.W' + repmat(rbm.c', rbm.batchsize, 1))     );
-        else
-            h2 = v2 * rbm.W' + repmat(rbm.c', rbm.batchsize, 1);
+        for iCDIter = 1:rbm.CDIter % do CDIter-CD.
+            % h2 is the hidden layer probability from last step of CD, or
+            % the probability from positive phase (for first step in CD).
+            % following Hinton's recommendation, we should always
+            % reconstruct based on a 0-1 sampled hidden layer, but when
+            % infer hidden from visible, the visible can be real-valued.
+            
+            if isequal(rbm.types{1},'binary')
+                h2Sampled = h2 > rand(size(h1));
+                %             h1Sampled = h1;
+            else
+                h2Sampled = h2 + sigma*randn(size(h1)); % sigma is the std deviation
+            end
+            
+            
+            % reconstruction
+            if isequal(rbm.types{2},'binary')
+                v2 = sigm(  (1/(sigma^2))*    (h2Sampled * rbm.W+repmat(rbm.b', rbm.batchsize, 1))         );
+                %             v2 = sigmrnd(h1Sampled * rbm.W+repmat(rbm.b', rbm.batchsize, 1));
+            else
+                v2 = h2Sampled * rbm.W+repmat(rbm.b', rbm.batchsize, 1);
+                % let's try sampled version...
+                %             v2 = h1Sampled * rbm.W+repmat(rbm.b', rbm.batchsize, 1)...
+                % + (sigma)*randn(rbm.batchsize, size(rbm.W,2)) ;
+            end
+            
+            
+            if isequal(rbm.types{1},'binary') % h2 is probability, and h2Sampled is stochastic version.
+                h2 = sigm(   (1/(sigma^2)) *(v2 * rbm.W' + repmat(rbm.c', rbm.batchsize, 1))     );
+            else
+                h2 = v2 * rbm.W' + repmat(rbm.c', rbm.batchsize, 1);
+            end
+            
         end
         
         c2 = (v2'*h2)'; % this can affect result?!!! order of computation...
@@ -157,7 +168,7 @@ for i = 1 : rbm.numepochs
             h1All = v1All * rbm.W' + repmat(rbm.c', m, 1);
         end
         
-%         sparsityGradientSecondTerm = sum(h1All.*(1-h1All),1);
+        %         sparsityGradientSecondTerm = sum(h1All.*(1-h1All),1);
         sparsityGradientFirstTerm = (rbm.sparsityTarget - mean(h1All,1));
         sparsity = mean(h1All(:));
         if isnan(sparsity)
@@ -167,13 +178,13 @@ for i = 1 : rbm.numepochs
     
     
     if isfield(rbm, 'nonSparsityPenalty') && rbm.nonSparsityPenalty~=0
-%         rbm.c = rbm.c + (rbm.nonSparsityPenalty/m) *...
-%             (sparsityGradientFirstTerm.*sparsityGradientSecondTerm)';
+        %         rbm.c = rbm.c + (rbm.nonSparsityPenalty/m) *...
+        %             (sparsityGradientFirstTerm.*sparsityGradientSecondTerm)';
         fprintf('simple form!\n');
         rbm.c = rbm.c + (rbm.nonSparsityPenalty) *... %no 1/m
             (sparsityGradientFirstTerm)';
     end
-
+    
     fprintf('sigma %f\n',sigma);
     
     rbm.sigmaFinal = sigma; % save the current sigma...
@@ -181,7 +192,7 @@ for i = 1 : rbm.numepochs
     if sigma > rbm.sigmaMin % sigma decay in Honglak
         sigma = sigma*rbm.sigmaDecay; %sigmaDecay is 1 by default.
     end
-
+    
     disp(['epoch ' num2str(i) '/' num2str(rbm.numepochs)  '. Average reconstruction error is: ' num2str(err / numbatches)]);
     if isfield(rbm, 'nonSparsityPenalty') && rbm.nonSparsityPenalty~=0
         fprintf('sparsity is %f\n', sparsity);
