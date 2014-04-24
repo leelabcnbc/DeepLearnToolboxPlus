@@ -45,13 +45,11 @@ for iIter = 1:rbm.lateralVisibleMFIter
     v_new = rbm.lateralVisibleMFDamp * v + (1-rbm.lateralVisibleMFDamp) * v_new; % if Damp parameter is 0, then no dampening.
     v_diff = mean(abs(v_new(:) - v(:)));
     if v_diff < 1e-7 % value used by Ruslan in DBM
-        v_new = v; % just for hinton's sake.
+%         v_new = v; % just for hinton's sake.
         break;
     end
     v = v_new;
 end
-
-v = v_new;
 
 end
 

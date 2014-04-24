@@ -104,8 +104,6 @@ for iIter = 1:rbm.lateralVisibleMFIter
     v = v_new;
 end
 
-v = v_new;
-
 end
 
 
