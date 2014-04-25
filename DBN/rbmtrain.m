@@ -18,9 +18,12 @@ if nargin < 3
     hintonFlag = false;
 end
 
+display(rbm);
+
+initMultiplierW = rbm.initMultiplierW;
 
 % add an initialization phase.
-rbm.W = 0.1*randn(size(rbm.W,2),size(rbm.W,1))'; % follow the initialization of hinton
+rbm.W = initMultiplierW*randn(size(rbm.W,2),size(rbm.W,1))'; % follow the initialization of hinton
 % 0.1 can be changed. In Ruslan's DBM code, this value can be sometimes
 % 0.01, sometimes 0.001.
 
@@ -38,7 +41,9 @@ rbm.W = 0.1*randn(size(rbm.W,2),size(rbm.W,1))'; % follow the initialization of 
 
 if isfield(rbm,'lateralVisible') && rbm.lateralVisible    
     if any(rbm.lateralVisibleMask(:) == true)
-        rbm.LV = 0.01*randn(size(rbm.W,2),size(rbm.W,2));  % LV means laterval visible.
+        initMultiplierLV = rbm.initMultiplierLV;
+        
+        rbm.LV = initMultiplierLV*randn(size(rbm.W,2),size(rbm.W,2));  % LV means laterval visible. % how big should they are ...
     end
     rbm.LV = (rbm.LV + rbm.LV')/2; % must be symmetric.
     LVdiagIndex = logical(eye(size(rbm.LV)));
@@ -69,7 +74,7 @@ if isfield(rbm,'lateralVisible') && rbm.lateralVisible
     assert(all(   rbm.LV(~rbm.lateralVisibleMask)==0  ));
 end
 
-if hintonFlag
+if hintonFlag && all(rbm.lateralVisibleMask(:) == false)
     rbm.xlast = cell(numbatches,1);
 end
 
@@ -86,7 +91,7 @@ assert(gaussianLayerCount<=1);
 sigma = rbm.sigma;
 
 for i = 1 : rbm.numepochs
-    
+    tic;
     if isfield(rbm, 'nonSparsityPenalty') && rbm.nonSparsityPenalty~=0
         sparsity = 0;
     end
@@ -110,7 +115,7 @@ for i = 1 : rbm.numepochs
             h1 = v1 * rbm.W' + repmat(rbm.c', rbm.batchsize, 1);
         end
         
-        if hintonFlag % save last states, to match hinton
+        if hintonFlag && all(rbm.lateralVisibleMask(:) == false) % save last states, to match hinton
             rbm.xlast{l} = h1;
         end
         
@@ -210,8 +215,8 @@ for i = 1 : rbm.numepochs
         % put division first, so that we may have better accuracy?
         rbm.vc = momentum * rbm.vc + alpha/rbm.batchsize * ((poshidact-neghidact)');
         
-        if isfield(rbm,'lateralVisible') && rbm.lateralVisible 
-            rbm.vLV = momentum * rbm.vLV + rbm.alphaLateral/rbm.batchsize * (posvisvis-negvisvis);
+        if isfield(rbm,'lateralVisible') && rbm.lateralVisible  % weight decay to LV.
+            rbm.vLV = momentum * rbm.vLV + rbm.alphaLateral * ( (posvisvis-negvisvis)/rbm.batchsize  -rbm.weightPenaltyL2*rbm.LV);
             assert(max(max(abs(rbm.vLV-rbm.vLV')))==0); % should be zero.
             % now, this alphaLateral has no 'final' version...
         end
@@ -274,7 +279,7 @@ for i = 1 : rbm.numepochs
     if sigma > rbm.sigmaMin % sigma decay in Honglak
         sigma = sigma*rbm.sigmaDecay; %sigmaDecay is 1 by default.
     end
-    
+    toc;
     disp(['epoch ' num2str(i) '/' num2str(rbm.numepochs)  '. Average reconstruction error is: ' num2str(err / numbatches)]);
     if isfield(rbm, 'nonSparsityPenalty') && rbm.nonSparsityPenalty~=0
         fprintf('sparsity is %f\n', sparsity);

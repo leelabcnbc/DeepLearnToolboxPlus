@@ -19,27 +19,27 @@ opts.numepochs =   50;
 opts.batchsize =  100; 
 opts.momentum  =   0.5;
 % opts.alpha     =   0.1;
-opts.alpha     =   [0.1];
+opts.alpha     =   [0.01];
 
-opts.weightPenaltyL2 = 0.0002; % L2 penalty
+opts.weightPenaltyL2 = 0.002; % L2 penalty
 opts.momentumFinal  = 0.9; % momentum in the later stages
 opts.epochFinal = 5; % when to change the alpha for momentum
 opts.batchOrderFixed = true;
 
-opts.lateralVisible = false;
+opts.lateralVisible = true;
 opts.visualize = true;
 opts.lateralVisibleMFDamp = 0.2; % 0.2 old, 0.8 new
 opts.lateralVisibleMFIter = 5; % value used in this case by Hinton's semi RBM paper.
-
-opts.alphaLateral =   [0.05]; % don't know if this will work...
+opts.initMultiplierLV = 0.05;
+%opts.alphaLateral =   [0.025]; % don't know if this will work...
 
 % opts.CDIter = 1; % you can uncomment this, but it's the same.
 
 opts = expandOpts(opts,numel(dbn.sizes));
 
-fileNameArray = {['RBM_hinton_layer1_full_' datestr(now) '.mat']};
+fileNameArray = {['RBM_hinton_layer1_full_lateralVisible' datestr(now,30) '.mat']};
 
 dbn = dbnsetup(dbn, batchdata2, opts);
-dbn = dbntrain(dbn, batchdata2, false, true, fileNameArray);
+dbn = dbntrain(dbn, batchdata2, true, true, fileNameArray);
 
 end
