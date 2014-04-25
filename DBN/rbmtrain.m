@@ -37,24 +37,25 @@ rbm.W = 0.1*randn(size(rbm.W,2),size(rbm.W,1))'; % follow the initialization of 
 % MF (no matrix notation), and one normal version
 
 if isfield(rbm,'lateralVisible') && rbm.lateralVisible    
-    if ~hintonFlag
+    if any(rbm.lateralVisibleMask(:) == true)
         rbm.LV = 0.01*randn(size(rbm.W,2),size(rbm.W,2));  % LV means laterval visible.
     end
     rbm.LV = (rbm.LV + rbm.LV')/2; % must be symmetric.
     LVdiagIndex = logical(eye(size(rbm.LV)));
     rbm.LV(LVdiagIndex) = 0;
     
-    if ~isfield(rbm,'lateralVisibleMask') % if there's a 1, it indicates connection.
-        
-        
-        rbm.lateralVisibleMask = true(size(rbm.LV));
-        
-        if hintonFlag
-            rbm.lateralVisibleMask = false(size(rbm.LV)); % hack to modify connectivity.
-        end
-        
-        rbm.lateralVisibleMask(LVdiagIndex) = false;
-    end
+    % this part is done in dbnsetup.
+%     if ~isfield(rbm,'lateralVisibleMask') % if there's a 1, it indicates connection.
+%         
+%         
+%         rbm.lateralVisibleMask = true(size(rbm.LV));
+%         
+% %         if hintonFlag
+% %             rbm.lateralVisibleMask = false(size(rbm.LV)); % hack to modify connectivity.
+% %         end
+%         
+%         rbm.lateralVisibleMask(LVdiagIndex) = false;
+%     end
     
     % rbm.lateralVisibleMask is a symmetric matrix, with diagonals 0.
     
@@ -210,8 +211,9 @@ for i = 1 : rbm.numepochs
         rbm.vc = momentum * rbm.vc + alpha/rbm.batchsize * ((poshidact-neghidact)');
         
         if isfield(rbm,'lateralVisible') && rbm.lateralVisible 
-            rbm.vLV = momentum * rbm.vLV + alpha/rbm.batchsize * (posvisvis-negvisvis);
+            rbm.vLV = momentum * rbm.vLV + rbm.alphaLateral/rbm.batchsize * (posvisvis-negvisvis);
             assert(max(max(abs(rbm.vLV-rbm.vLV')))==0); % should be zero.
+            % now, this alphaLateral has no 'final' version...
         end
         
         assert(all(~isnan(rbm.vW(:))));
@@ -252,7 +254,7 @@ for i = 1 : rbm.numepochs
         sparsityGradientFirstTerm = (rbm.sparsityTarget - mean(h1All,1));
         sparsity = mean(h1All(:));
         if isnan(sparsity)
-            fprintf('what the fuck!\n');
+            error('what the fuck!\n');
         end
     end
     
@@ -278,10 +280,20 @@ for i = 1 : rbm.numepochs
         fprintf('sparsity is %f\n', sparsity);
     end
     
+    if isfield(rbm,'visualize') && rbm.visualize
+        visualize(rbm.W');
+        title(num2str(i));
+        drawnow;
+    end
     
     if saveFlag
         errAvg = err / numbatches;
-        save(fileName,'rbm','sparsity','i','errAvg');
+        
+        if isfield(rbm, 'nonSparsityPenalty') && rbm.nonSparsityPenalty~=0
+            save(fileName,'rbm','sparsity','i','errAvg');
+        else
+            save(fileName,'rbm','i','errAvg');
+        end
     end
     
 end

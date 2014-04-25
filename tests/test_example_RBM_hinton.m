@@ -27,6 +27,7 @@ opts.epochFinal = 5; % when to change the alpha for momentum
 opts.batchOrderFixed = true;
 
 opts.lateralVisible = true;
+opts.lateralVisibleMask = {'none'};
 
 % opts.CDIter = 1; % you can uncomment this, but it's the same.
 

@@ -12,7 +12,7 @@ function dbn = dbnsetup(dbn, x, opts)
     % vectors...
 
     for u = 1 : numel(dbn.sizes) - 1
-        dbn.rbm{u}.alpha    = opts.alpha(u);
+        dbn.rbm{u}.alpha    = opts.alpha(u); % required parameter.
         dbn.rbm{u}.momentum = opts.momentum(u);
         dbn.rbm{u}.batchsize = opts.batchsize(u);
         dbn.rbm{u}.numepochs = opts.numepochs(u);
@@ -104,8 +104,28 @@ function dbn = dbnsetup(dbn, x, opts)
             else
                 dbn.rbm{u}.lateralVisibleMFDamp = 0.2; % value in Hinton's semi RBM paper.
             end
+            
+            if isfield(opts,'alphaLateral')
+                dbn.rbm{u}.alphaLateral = opts.alphaLateral(u);
+            else
+                dbn.rbm{u}.alphaLateral = 0.5*dbn.rbm{u}.alpha; % half of normal alpha.
+            end
+            
+            if isfield(opts,'lateralVisibleMask')
+                dbn.rbm{u}.lateralVisibleMask = generate_lateral_mask(dbn.sizes(u),opts.lateralVisibleMask{u});
+            else
+                dbn.rbm{u}.lateralVisibleMask = generate_lateral_mask(dbn.sizes(u),'all');
+            end
+            
         else
             dbn.rbm{u}.lateralVisible = false; % by default, no lateral. 
+        end
+        
+        
+        if isfield(opts,'visualize')
+            dbn.rbm{u}.visualize = opts.visualize(u);
+        else
+            dbn.rbm{u}.visualize = false; %no visualization
         end
         
         
@@ -123,6 +143,8 @@ function dbn = dbnsetup(dbn, x, opts)
         if isfield(dbn.rbm{u},'lateralVisible') && dbn.rbm{u}.lateralVisible
             dbn.rbm{u}.LV = zeros(dbn.sizes(u),dbn.sizes(u));
             dbn.rbm{u}.vLV = zeros(dbn.sizes(u),dbn.sizes(u));
+            
+            % TODO: write small routines to generate mask matrix.
         end
         
     end
