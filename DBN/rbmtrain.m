@@ -225,6 +225,7 @@ for i = 1 : rbm.numepochs
         
         if isfield(rbm,'lateralVisible') && rbm.lateralVisible  % weight decay to LV.
             rbm.vLV = momentum * rbm.vLV + rbm.alphaLateral * ( (posvisvis-negvisvis)/rbm.batchsize  -rbm.weightPenaltyL2*rbm.LV);
+            rbm.vLV(~rbm.lateralVisibleMask) = 0; % remove those unrelated term
             assert(max(max(abs(rbm.vLV-rbm.vLV')))==0); % should be zero.
             % now, this alphaLateral has no 'final' version...
             
