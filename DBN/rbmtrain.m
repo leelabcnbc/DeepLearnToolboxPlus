@@ -22,12 +22,14 @@ display(rbm);
 
 initMultiplierW = rbm.initMultiplierW;
 
-% add an initialization phase.
-rbm.W = initMultiplierW*randn(size(rbm.W,2),size(rbm.W,1))'; % follow the initialization of hinton
-% 0.1 can be changed. In Ruslan's DBM code, this value can be sometimes
-% 0.01, sometimes 0.001.
+if ~isfield(rbm,'initialized') || ~rbm.initialized
+    % add an initialization phase.
+    rbm.W = initMultiplierW*randn(size(rbm.W,2),size(rbm.W,1))'; % follow the initialization of hinton
+    % 0.1 can be changed. In Ruslan's DBM code, this value can be sometimes
+    % 0.01, sometimes 0.001.
+end
 
-% lateral connections for visible 
+% lateral connections for visible
 % diagonals are zero
 % L_{ij} = L_{ji}, and they represent the connection between vi and vj.
 % when computing the whole energy, should use 0.5 * V^T * L * V, since
@@ -39,7 +41,7 @@ rbm.W = initMultiplierW*randn(size(rbm.W,2),size(rbm.W,1))'; % follow the initia
 % to implement this correctly, I'd better write two subfunctions, one naive
 % MF (no matrix notation), and one normal version
 
-if isfield(rbm,'lateralVisible') && rbm.lateralVisible    
+if isfield(rbm,'lateralVisible') && rbm.lateralVisible
     if any(rbm.lateralVisibleMask(:) == true)
         initMultiplierLV = rbm.initMultiplierLV;
         
@@ -50,17 +52,17 @@ if isfield(rbm,'lateralVisible') && rbm.lateralVisible
     rbm.LV(LVdiagIndex) = 0;
     
     % this part is done in dbnsetup.
-%     if ~isfield(rbm,'lateralVisibleMask') % if there's a 1, it indicates connection.
-%         
-%         
-%         rbm.lateralVisibleMask = true(size(rbm.LV));
-%         
-% %         if hintonFlag
-% %             rbm.lateralVisibleMask = false(size(rbm.LV)); % hack to modify connectivity.
-% %         end
-%         
-%         rbm.lateralVisibleMask(LVdiagIndex) = false;
-%     end
+    %     if ~isfield(rbm,'lateralVisibleMask') % if there's a 1, it indicates connection.
+    %
+    %
+    %         rbm.lateralVisibleMask = true(size(rbm.LV));
+    %
+    % %         if hintonFlag
+    % %             rbm.lateralVisibleMask = false(size(rbm.LV)); % hack to modify connectivity.
+    % %         end
+    %
+    %         rbm.lateralVisibleMask(LVdiagIndex) = false;
+    %     end
     
     % rbm.lateralVisibleMask is a symmetric matrix, with diagonals 0.
     
@@ -74,7 +76,7 @@ if isfield(rbm,'lateralVisible') && rbm.lateralVisible
     assert(all(   rbm.LV(~rbm.lateralVisibleMask)==0  ));
 end
 
-if hintonFlag && all(rbm.lateralVisibleMask(:) == false)
+if hintonFlag && rbm.lateralVisible && all(rbm.lateralVisibleMask(:) == false)
     rbm.xlast = cell(numbatches,1);
 end
 
@@ -115,7 +117,7 @@ for i = 1 : rbm.numepochs
             h1 = v1 * rbm.W' + repmat(rbm.c', rbm.batchsize, 1);
         end
         
-        if hintonFlag && all(rbm.lateralVisibleMask(:) == false) % save last states, to match hinton
+        if hintonFlag && rbm.lateralVisible && all(rbm.lateralVisibleMask(:) == false) % save last states, to match hinton
             rbm.xlast{l} = h1;
         end
         
@@ -128,8 +130,8 @@ for i = 1 : rbm.numepochs
         posvisact = sum(batch);
         
         
-        if isfield(rbm,'lateralVisible') && rbm.lateralVisible 
-            posvisvis = (v1')*v1; 
+        if isfield(rbm,'lateralVisible') && rbm.lateralVisible
+            posvisvis = (v1')*v1;
             % this thing should not be halved later, since each entry in LV
             % is the full weight, not halved version.
             % should write something naive to check my above statement.
@@ -137,7 +139,7 @@ for i = 1 : rbm.numepochs
         
         
         h2 = h1;
-
+        
         for iCDIter = 1:rbm.CDIter % do CDIter-CD.
             % h2 is the hidden layer probability from last step of CD, or
             % the probability from positive phase (for first step in CD).
@@ -145,12 +147,14 @@ for i = 1 : rbm.numepochs
             % reconstruct based on a 0-1 sampled hidden layer, but when
             % infer hidden from visible, the visible can be real-valued.
             
-
+            
             if isequal(rbm.types{1},'binary') %stochastic sample based on h2.
                 h2Sampled = h2 > rand(size(h1));
                 %             h1Sampled = h1;
             else
                 h2Sampled = h2 + sigma*randn(size(h1)); % sigma is the std deviation
+                % why my current implementation fail to match old one on
+                % vanHateren_Lee
             end
             
             
@@ -162,17 +166,19 @@ for i = 1 : rbm.numepochs
                 v2 = h2Sampled * rbm.W+repmat(rbm.b', rbm.batchsize, 1);
                 % let's try sampled version...
                 %             v2 = h1Sampled * rbm.W+repmat(rbm.b', rbm.batchsize, 1)...
-                % + (sigma)*randn(rbm.batchsize, size(rbm.W,2)) ;
+                %                  + (sigma^2)*randn(rbm.batchsize, size(rbm.W,2)) ; ZYM:
+                %                  why my current result on vanHateren_Lee failed to match
+                %                  old one.
             end
             
             
             % the input v2 is the initial mean of v2.
-            if isfield(rbm,'lateralVisible') && rbm.lateralVisible 
+            if isfield(rbm,'lateralVisible') && rbm.lateralVisible
                 % update v2 using mean-field so that they somewhat converge
                 [v2] = rbm_meanfield(v2, h2Sampled, rbm, sigma);
-%                 disp(MFiter);
+                %                 disp(MFiter);
             end
-           
+            
             
             if isequal(rbm.types{1},'binary') % h2 is probability, and h2Sampled is stochastic version.
                 h2 = sigm(   (1/(sigma^2)) *(v2 * rbm.W' + repmat(rbm.c', rbm.batchsize, 1))     );
@@ -189,8 +195,8 @@ for i = 1 : rbm.numepochs
         %             computation...
         
         
-        if isfield(rbm,'lateralVisible') && rbm.lateralVisible 
-            negvisvis = (v2')*v2; 
+        if isfield(rbm,'lateralVisible') && rbm.lateralVisible
+            negvisvis = (v2')*v2;
             % this thing should not be halved later, since each entry in LV
             % is the full weight, not halved version.
             % should write something naive to check my above statement.
@@ -207,7 +213,9 @@ for i = 1 : rbm.numepochs
         
         neghidact = sum(h2);
         negvisact = sum(v2);
-        
+        if mod(l,50) == 0
+            disp(['dW norm: ' num2str( mean((rbm.vW(:)).^2) ) ]);
+        end
         % for vW, I put division afterwards, to make my program behave
         % exactly as Ruslan's autoencoder.
         rbm.vW = momentum * rbm.vW + alpha * ((c1 - c2)/rbm.batchsize - rbm.weightPenaltyL2*rbm.W);
@@ -219,7 +227,14 @@ for i = 1 : rbm.numepochs
             rbm.vLV = momentum * rbm.vLV + rbm.alphaLateral * ( (posvisvis-negvisvis)/rbm.batchsize  -rbm.weightPenaltyL2*rbm.LV);
             assert(max(max(abs(rbm.vLV-rbm.vLV')))==0); % should be zero.
             % now, this alphaLateral has no 'final' version...
+            
+            if mod(l,50) == 0
+                disp(['dLV norm: ' num2str( mean((rbm.vLV(:)).^2) ) ]);
+            end
+            
         end
+        
+        
         
         assert(all(~isnan(rbm.vW(:))));
         assert(all(~isnan(rbm.vb(:))));
@@ -281,6 +296,18 @@ for i = 1 : rbm.numepochs
     end
     toc;
     disp(['epoch ' num2str(i) '/' num2str(rbm.numepochs)  '. Average reconstruction error is: ' num2str(err / numbatches)]);
+    
+    disp(['W norm: ' num2str( mean((rbm.W(:)).^2) ) ]);
+    
+    
+    if isfield(rbm,'lateralVisible') && rbm.lateralVisible  % weight decay to LV.
+        
+        if mod(l,50) == 0
+            disp(['LV norm: ' num2str( mean((rbm.LV(:)).^2) ) ]);
+        end
+        
+    end
+    
     if isfield(rbm, 'nonSparsityPenalty') && rbm.nonSparsityPenalty~=0
         fprintf('sparsity is %f\n', sparsity);
     end
@@ -289,6 +316,7 @@ for i = 1 : rbm.numepochs
         visualize(rbm.W');
         title(num2str(i));
         drawnow;
+        print('-depsc2',[fileName '.eps']);
     end
     
     if saveFlag
