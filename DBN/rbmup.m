@@ -3,7 +3,7 @@ function x = rbmup(rbm, x, sigmaNew)
 if isfield(rbm,'sigmaFinal')
     sigma = rbm.sigmaFinal;
 else
-    sigma = 1;
+    sigma = 1; %might be changed to rbm.sigma?
 end
 
 if nargin >= 3 && ~isempty(sigmaNew)
