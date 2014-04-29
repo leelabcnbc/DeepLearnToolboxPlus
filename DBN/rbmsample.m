@@ -22,13 +22,13 @@ if isfield(rbm,'lateralVisible') && rbm.lateralVisible
 end
 
 sigma = rbm.sigmaFinal; % no compatibility
-
+rbm.batchsize = size(h2Sampled,1); % hack.. don't want to change code much...
 for iIter = 1:numberIter
     if isequal(rbm.types{2},'binary')
         v2 = sigm(  (1/(sigma^2))*    (h2Sampled * rbm.W+repmat(rbm.b', rbm.batchsize, 1))         );
         
         if pars.stochasticVisible
-            v2 = (v2 > rand(v2));
+            v2 = (v2 > rand(size(v2)));
         end
         
     else
@@ -49,6 +49,7 @@ for iIter = 1:numberIter
             %                 disp(MFiter);
         else
             % normal Gibbs sampling
+            assert(isequal(lateralUpdateMode,'gibbs'));
             [v2] = rbm_gibbs(v2, h2Sampled, rbm, sigma);
         end
     end
@@ -68,6 +69,7 @@ for iIter = 1:numberIter
         % why my current implementation fail to match old one on
         % vanHateren_Lee
     end
+    disp(iIter);
 end
 
 

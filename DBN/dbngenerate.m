@@ -25,15 +25,15 @@ rbmNumber = numel(dbn.rbm);
 
 topInputSize = size(dbn.rbm{rbmNumber}.W,1); % hidden size of top RBM.
 
-if isequal(dbn.rbm{rbmNumber}.types,'binary') % generate random binary units
+if isequal(dbn.rbm{rbmNumber}.types{1},'binary') % generate random binary units
     topInput = rand(numberOfSamples,topInputSize) > 0.5;
 else
-    assert(isequal(dbn.rbm{rbmNumber}.types,'gaussian'));
+    assert(isequal(dbn.rbm{rbmNumber}.types{1},'gaussian'));
     topInput = randn(numberOfSamples,topInputSize);
 end
 
 
-for iRBM = numel(dbn.rbm)-1:-1:1
+for iRBM = numel(dbn.rbm):-1:1
     topInput = rbmsample(dbn.rbm{iRBM},topInput,pars.rbmPars{iRBM}); % one set of parameters for each RBM.
 end
 
