@@ -16,7 +16,8 @@ function [v, iIter] = rbm_meanfield(v, hSampled, rbm, sigma)
 % sizeH = size(hSampled,2);
 assert(size(hSampled,1)==N);
 
-% should consider both binary case, and gaussian case.
+% should consider both binary case, and gaussian case. % let's only
+% consider binary now.
 
 % related things
 % rbm.W is [sizeH x sizeV]
