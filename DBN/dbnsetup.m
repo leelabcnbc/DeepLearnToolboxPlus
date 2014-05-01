@@ -60,9 +60,14 @@ for u = 1 : numel(dbn.sizes) - 1
     
     if isfield(opts,'sparsityTarget')
         dbn.rbm{u}.sparsityTarget = opts.sparsityTarget(u);
+        if isfield(opts,'sparsityTargetStd')
+             dbn.rbm{u}.sparsityTargetStd = opts.sparsityTargetStd(u);
+        end
     else
         dbn.rbm{u}.sparsityTarget = NaN; %no meaning
     end
+    
+    
     
     
     if isfield(opts,'nonSparsityPenalty')

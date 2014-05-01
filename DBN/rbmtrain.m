@@ -18,6 +18,24 @@ if nargin < 3
     hintonFlag = false;
 end
 
+if isfield(rbm, 'nonSparsityPenalty') && rbm.nonSparsityPenalty~=0
+    if isfield(rbm,'sparsityTargetStd') && rbm.sparsityTargetStd > 0 % make a vector of sparsity target
+        rbm.sparsityTarget = rbm.sparsityTarget + rbm.sparsityTargetStd*randn(1,size(rbm.W,2));
+        
+        fprintf('%d units with negative sparsity target\n',sum(rbm.sparsityTarget<=0));
+
+        rbm.sparsityTarget(rbm.sparsityTarget<=0) = rbm.sparsityTarget(rbm.sparsityTarget<=0)...
+            - rbm.sparsityTargetStd; % make those outliers to be one sigma smaller than the mean.
+        
+        assert(isempty(rbm.sparsityTarget<=0));
+        
+        fprintf('mean target %f, std target %f\n',mean(rbm.sparsityTarget), std(rbm.sparsityTarget));
+        
+    end
+end
+
+
+
 display(rbm);
 
 initMultiplierW = rbm.initMultiplierW;
@@ -263,6 +281,11 @@ for i = 1 : rbm.numepochs
     if isfield(rbm, 'nonSparsityPenalty') && rbm.nonSparsityPenalty~=0
         assert(isfield(rbm,'sparsityTarget'));
         assert(isequal(rbm.types{1},'binary')); % only works for binary hidden layer
+        
+        if ~isscalar(rbm.sparsityTarget)
+            fprintf('vectorized sparsity!');
+        end
+        
         v1All = x;
         
         if isequal(rbm.types{1},'binary')
@@ -273,12 +296,14 @@ for i = 1 : rbm.numepochs
         % h1All is a matrix of size [N x hiddenSize].
         
         %         sparsityGradientSecondTerm = sum(h1All.*(1-h1All),1);
-        sparsityGradientFirstTerm = (rbm.sparsityTarget - mean(h1All,1));
+        sparsityGradientFirstTerm =  rbm.sparsityTarget - mean(h1All,1);
         % sparsityGradientFirstTerm is p-q in Hinton's TR. also the
         % negative gradient for the bias.
         % sparsityGradientFirstTerm is of size [1 x hiddenSize].
         
-        sparsityGradientW = (rbm.sparsityTarget - h1All'); % [hiddenSize x N]
+%         sparsityGradientW = (rbm.sparsityTarget - h1All'); % [hiddenSize x N]
+        sparsityGradientW = bsxfun(@minus, rbm.sparsityTarget, h1All); %[N x hiddenSize]
+        sparsityGradientW = sparsityGradientW';
         sparsityGradientW = (1/m) * (sparsityGradientW*v1All); % [hidden x visible] 1/m for average.
         
         sparsity = mean(h1All(:));
