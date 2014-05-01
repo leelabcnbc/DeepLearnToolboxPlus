@@ -71,6 +71,13 @@ for u = 1 : numel(dbn.sizes) - 1
         dbn.rbm{u}.nonSparsityPenalty = 0; %no sparsity penalty
     end
     
+    if isfield(opts,'nonSparsityPenaltyOnW')
+        dbn.rbm{u}.nonSparsityPenaltyOnW = opts.nonSparsityPenaltyOnW(u);
+    else
+        dbn.rbm{u}.nonSparsityPenaltyOnW = false; %no sparsity penalty on weights.
+    end
+    
+    
     if isfield(opts,'sigma')
         dbn.rbm{u}.sigma = opts.sigma(u);
     else

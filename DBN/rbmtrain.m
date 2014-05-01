@@ -270,9 +270,17 @@ for i = 1 : rbm.numepochs
         else
             h1All = v1All * rbm.W' + repmat(rbm.c', m, 1);
         end
+        % h1All is a matrix of size [N x hiddenSize].
         
         %         sparsityGradientSecondTerm = sum(h1All.*(1-h1All),1);
         sparsityGradientFirstTerm = (rbm.sparsityTarget - mean(h1All,1));
+        % sparsityGradientFirstTerm is p-q in Hinton's TR. also the
+        % negative gradient for the bias.
+        % sparsityGradientFirstTerm is of size [1 x hiddenSize].
+        
+        sparsityGradientW = (rbm.sparsityTarget - h1All'); % [hiddenSize x N]
+        sparsityGradientW = (1/m) * (sparsityGradientW*v1All); % [hidden x visible] 1/m for average.
+        
         sparsity = mean(h1All(:));
         if isnan(sparsity)
             error('what the fuck!\n');
@@ -286,6 +294,13 @@ for i = 1 : rbm.numepochs
         fprintf('simple form!\n');
         rbm.c = rbm.c + (rbm.nonSparsityPenalty) *... %no 1/m
             (sparsityGradientFirstTerm)';
+        
+        if isfield(rbm,'nonSparsityPenaltyOnW') && rbm.nonSparsityPenaltyOnW
+            % if we like Hinton's recommendation
+            rbm.W = rbm.W + (rbm.nonSparsityPenalty) * sparsityGradientW;
+            fprintf('update W for sparsity!\n');
+        end
+        
     end
     
     fprintf('sigma %f\n',sigma);
