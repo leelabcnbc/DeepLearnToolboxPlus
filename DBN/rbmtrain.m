@@ -20,14 +20,15 @@ end
 
 if isfield(rbm, 'nonSparsityPenalty') && rbm.nonSparsityPenalty~=0
     if isfield(rbm,'sparsityTargetStd') && rbm.sparsityTargetStd > 0 % make a vector of sparsity target
-        rbm.sparsityTarget = rbm.sparsityTarget + rbm.sparsityTargetStd*randn(1,size(rbm.W,2));
+	rbm.sparsityTargetOld = rbm.sparsityTarget;
+        rbm.sparsityTarget = rbm.sparsityTargetOld + rbm.sparsityTargetStd*randn(1,size(rbm.W,1));
         
         fprintf('%d units with negative sparsity target\n',sum(rbm.sparsityTarget<=0));
 
-        rbm.sparsityTarget(rbm.sparsityTarget<=0) = rbm.sparsityTarget(rbm.sparsityTarget<=0)...
+        rbm.sparsityTarget(rbm.sparsityTarget<=0) = rbm.sparsityTargetOld ...
             - rbm.sparsityTargetStd; % make those outliers to be one sigma smaller than the mean.
         
-        assert(isempty(rbm.sparsityTarget<=0));
+        assert(sum(rbm.sparsityTarget<=0)==0);
         
         fprintf('mean target %f, std target %f\n',mean(rbm.sparsityTarget), std(rbm.sparsityTarget));
         
