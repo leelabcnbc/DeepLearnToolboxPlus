@@ -67,7 +67,7 @@ end
 
 W_all = [gbm.W_xyh(:);gbm.W_yh(:);gbm.W_xy(:);gbm.W_xh(:);gbm.W_y(:);gbm.W_h(:)];
 vW = zeros(size(W_all));
-for i = 1 : rbm.numepochs
+for i = 1 : gbm.numepochs
     tic;
 
     if ~gbm.batchOrderFixed
@@ -82,7 +82,7 @@ for i = 1 : rbm.numepochs
         
         % collect statistics 
         
-        [~, dWRaw] = bm.L_dL_gbm_naive(W_all,batchX, batchY, params,'CD');
+        [~, dWRaw, h1] = bm.L_dL_gbm_naive(W_all,batchX, batchY, params,'CD');
 
         % update parameters
         dWRaw = -dWRaw;
@@ -98,13 +98,17 @@ for i = 1 : rbm.numepochs
         
         if mod(lBatch,50) == 0
             disp(['dW norm: ' num2str( mean((vW(:)).^2) ) ]);
+            disp(['h1 sparsity: ' num2str( mean(h1)) ]);
         end
         
-        vW = momentum * vW + alpha * dWRaw;
+        vW = momentum * vW + alpha * (dWRaw - gbm.weightPenaltyL2*W_all);
         
         assert(all(~isnan(vW(:))));
     
-        W = W + vW;
+        W_all = W_all + vW;
+        
+
+%         fprintf('batch %d/%d for epoch %d\n',lBatch,numbatches,i);
     end
     if i > gbm.epochFinal
         fprintf('finally!, with alpha %f, momentum %f\n', alpha, momentum);
@@ -115,6 +119,29 @@ for i = 1 : rbm.numepochs
     toc;
 end
 
+% pack back...
+
+gbm.W_xyh = W_all(1:xSize*ySize*hSize);
+gbm.W_yh = W_all(xSize*ySize*hSize+1:xSize*ySize*hSize+ySize*hSize);
+gbm.W_xy = W_all(xSize*ySize*hSize+ySize*hSize+1: xSize*ySize*hSize+ySize*hSize + xSize*ySize);
+gbm.W_xh = W_all(xSize*ySize*hSize+ySize*hSize+xSize*ySize+1:xSize*ySize*hSize+ySize*hSize+xSize*ySize+xSize*hSize);
+gbm.W_y =  W_all(xSize*ySize*hSize+ySize*hSize+xSize*ySize+xSize*hSize+1:xSize*ySize*hSize+ySize*hSize+xSize*ySize+xSize*hSize+ySize);
+gbm.W_h =  W_all(xSize*ySize*hSize+ySize*hSize+xSize*ySize+xSize*hSize+ySize+1:xSize*ySize*hSize+ySize*hSize+xSize*ySize+xSize*hSize+ySize+hSize);
+
+
+
+% reshape everything...
+gbm.W_xyh = reshape(gbm.W_xyh,[xSize,ySize,hSize]);
+gbm.W_yh = reshape(gbm.W_yh,[ySize,hSize]);
+gbm.W_xy = reshape(gbm.W_xy,[xSize,ySize]);
+gbm.W_xh = reshape(gbm.W_xh,[xSize,hSize]);
+gbm.W_y = reshape(gbm.W_y,[ySize,1]);
+gbm.W_h = reshape(gbm.W_h,[hSize,1]);
+
+% for safety check.
+gbm.W_all = W_all;
+
+end
 
 
 
