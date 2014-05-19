@@ -16,6 +16,7 @@ function test_example_GBM_random_shifted_image()
 rng(0,'twister');
 
 load('gbm_image_data.mat');
+% load('gbm_image_data_prob05.mat');
 
 
 gbm = struct();
@@ -26,7 +27,7 @@ gbm.hSize = 10; % or 20?
 gbm.CDIter = 1;
 gbm.batchsize = 100;
 gbm.initMultiplierW = 0.01;
-gbm.sigma = 1;
+gbm.sigma = 0.75;
 
 gbm.initialized = false;
 
@@ -52,17 +53,20 @@ gbm.nonZeroMask = true(xSize*ySize*hSize+ySize*hSize + xSize*ySize+xSize*hSize+y
 % W_xy and W_xh.
 gbm.nonZeroMask(xSize*ySize*hSize+ySize*hSize+1: xSize*ySize*hSize+ySize*hSize + xSize*ySize) = false;
 gbm.nonZeroMask(xSize*ySize*hSize+ySize*hSize+xSize*ySize+1:xSize*ySize*hSize+ySize*hSize+xSize*ySize+xSize*hSize) = false;
+gbm.nonZeroMask(xSize*ySize*hSize+1:xSize*ySize*hSize+ySize*hSize) =false;
+% W_yh
+
+
 
 % 
 % 
 % load('gbm_random_shifted_image_20140516T203626.mat','gbm');
 
 
-xData = xData(1:300000,:);
-yData = yData(1:300000,:);
+% xData = xData(1:300000,:);
+% yData = yData(1:300000,:);
 
 gbm = gbmtrain(gbm, xData, yData);
-
 
 
 

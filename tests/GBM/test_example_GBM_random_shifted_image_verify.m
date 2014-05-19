@@ -13,6 +13,10 @@ function test_example_GBM_random_shifted_image_verify(fileName)
 
 % generate test data 
 
+if nargin < 1 || isempty(fileName)
+    fileName = 'gbm_random_shifted_image_20140519T131250.mat';
+end
+
 gbmStruct = load(fileName);
 
 sideSize = 10;
@@ -55,7 +59,7 @@ for iTestImage = 1:N
         reconstructedYImage(reconstructedY(iPixel)) = xImageThis(iPixel);
     end
     
-    
+    close all;
     
     subplot(3,1,1);
     imagesc(reshape(xImageThis,sideSize,sideSize)); colormap gray;
@@ -65,6 +69,27 @@ for iTestImage = 1:N
     imagesc(reshape(reconstructedYImage,sideSize,sideSize)); colormap gray;
     
     fprintf('error rate: %d/%d = %f\n', sum(reconstructedYImage~=yImageThis),sideSize*sideSize, sum(reconstructedYImage~=yImageThis)/sideSize*sideSize);
+    
+    
+    % flow field
+    
+    [reconstructedY2D1,reconstructedY2D2] = ind2sub([sideSize,sideSize],reconstructedY);
+    
+    [gx,gy] = meshgrid(1:sideSize,1:sideSize);
+    u = zeros(size(gx));
+    v = zeros(size(gy));
+    
+    
+    for iPixel = 1:numel(gx,gy)
+        u(iPixel) = reconstructedY2D2(iPixel)-gx(iPixel);
+        v(iPixel) = -(reconstructedY2D1(iPixel)-gy(iPixel));
+    end
+    
+    
+    figure; 
+    quiver(gx,gy,u,v);
+    
+    
     
     pause;
 %     disp(iTestImage);
