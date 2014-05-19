@@ -1,6 +1,6 @@
 % how to use this:
 
-% add breakpoint just after the loop for CD in rbmtrain.m, and run this.
+% add breakpoint just after the loop for CD in rbmtrain.m; run test_example_RBM_hinton.m, and and run this.
 
 
 params = struct();

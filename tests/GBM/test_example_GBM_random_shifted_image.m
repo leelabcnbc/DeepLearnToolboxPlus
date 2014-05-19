@@ -18,13 +18,12 @@ rng(0,'twister');
 load('gbm_image_data.mat');
 
 
-
 gbm = struct();
 gbm.xSize = sideSize*sideSize;
 gbm.ySize = sideSize*sideSize;
 gbm.hSize = 10; % or 20?
 
-gbm.CDIter = 3;
+gbm.CDIter = 1;
 gbm.batchsize = 100;
 gbm.initMultiplierW = 0.01;
 gbm.sigma = 1;
@@ -33,12 +32,27 @@ gbm.initialized = false;
 
 gbm.numepochs = 1;
 gbm.momentumFinal = 0.5;
-gbm.alphaFinal = 0.1;
+gbm.alphaFinal = 0.5;
 gbm.momentum = 0.5;
-gbm.alpha = 0.1;
+gbm.alpha = 0.5;
 gbm.epochFinal = 100;
 gbm.batchOrderFixed = true;
 gbm.weightPenaltyL2 = 1e-2;
+
+% well, let's add zeromask so that not that many weights are interacting
+% with x.
+
+xSize = sideSize*sideSize;
+ySize = sideSize*sideSize;
+hSize = gbm.hSize;
+
+
+gbm.nonZeroMask = true(xSize*ySize*hSize+ySize*hSize + xSize*ySize+xSize*hSize+ySize+hSize,1);
+
+% W_xy and W_xh.
+gbm.nonZeroMask(xSize*ySize*hSize+ySize*hSize+1: xSize*ySize*hSize+ySize*hSize + xSize*ySize) = false;
+gbm.nonZeroMask(xSize*ySize*hSize+ySize*hSize+xSize*ySize+1:xSize*ySize*hSize+ySize*hSize+xSize*ySize+xSize*hSize) = false;
+
 % 
 % 
 % load('gbm_random_shifted_image_20140516T203626.mat','gbm');
@@ -48,6 +62,8 @@ xData = xData(1:300000,:);
 yData = yData(1:300000,:);
 
 gbm = gbmtrain(gbm, xData, yData);
+
+
 
 
 

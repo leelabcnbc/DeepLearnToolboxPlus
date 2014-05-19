@@ -1,4 +1,4 @@
-function test_example_GBM_random_shifted_image_verify()
+function test_example_GBM_random_shifted_image_verify(fileName)
 % TEST_EXAMPLE_GBM_RANDOM_SHIFTED_IMAGE_VERIFY ... 
 %  
 %   ... 
@@ -13,17 +13,22 @@ function test_example_GBM_random_shifted_image_verify()
 
 % generate test data 
 
-gbmStruct = load('gbm_random_shifted_image_20140516T203626.mat');
+gbmStruct = load(fileName);
 
 sideSize = 10;
 probOn = 0.1;
 debug = false;
-N = 1000;
+N = 50000;
 
-[xDataTest, yDataTest] = gbm_generate_random_shifted_image(N,sideSize,probOn,debug);
+% [xDataTest, yDataTest] = gbm_generate_random_shifted_image(N,sideSize,probOn,debug);
+
+dataTrain = load('gbm_image_data.mat');
+
+xDataTest = dataTrain.xData;
+yDataTest = dataTrain.yData;
 
 overallWeight = gbmStruct.gbm.W_xyh;
-
+h1_all = 0;
 for iTestImage = 1:N
     xImageThis = xDataTest(iTestImage,:);
     yImageThis = yDataTest(iTestImage,:);
@@ -35,10 +40,21 @@ for iTestImage = 1:N
 %     which gbm -all
 %     gbm.xSize;
 %     disp(gbm);
+
     [~,~,h1] = bm.gbm_statistics_single(xImageThis,yImageThis,gbmStruct.gbm,'CD',true);
+    
+%     h1_all = h1+h1_all;
+    
     h1
     marginalWeight = mean( bsxfun(@times,overallWeight,reshape(h1,[1,1,10])),3);
     [~,reconstructedY] = max(marginalWeight,[],2);
+    
+    reconstructedYImage = zeros(1,sideSize*sideSize);
+    
+    for iPixel = 1:sideSize*sideSize
+        reconstructedYImage(reconstructedY(iPixel)) = xImageThis(iPixel);
+    end
+    
     
     
     subplot(3,1,1);
@@ -46,11 +62,15 @@ for iTestImage = 1:N
     subplot(3,1,2);
     imagesc(reshape(yImageThis,sideSize,sideSize)); colormap gray;
     subplot(3,1,3);
-    imagesc(reshape(reconstructedY,sideSize,sideSize)); colormap gray;
+    imagesc(reshape(reconstructedYImage,sideSize,sideSize)); colormap gray;
+    
+    fprintf('error rate: %d/%d = %f\n', sum(reconstructedYImage~=yImageThis),sideSize*sideSize, sum(reconstructedYImage~=yImageThis)/sideSize*sideSize);
     
     pause;
+%     disp(iTestImage);
     
 end
+% h1_all/N
 
 end
 
