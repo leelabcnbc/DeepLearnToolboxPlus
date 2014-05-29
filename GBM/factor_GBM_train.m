@@ -185,7 +185,11 @@ end
         data.inputs = batch_x;
         
         for iCD = 1:pars.cditerations
-            hidstates = double(pars.hids > rand(size(pars.hids )));
+            if ~pars.meanfield_output
+                hidstates = double(pars.hids > rand(size(pars.hids )));
+            else
+                hidstates = pars.hids;
+            end
             negoutput = factor_GBM_outprobs(hidstates,batch_x);
             datastates = factor_GBM_sample_obs(negoutput);
             pars.hids = factor_GBM_hidprobs(datastates,batch_x);
