@@ -105,11 +105,11 @@ for epoch = 1:pars.numepoch
     end
     
     if rem(epoch,everySave) == 0 || epoch == pars.numepoch
-        fileName = [datestring '_' int2str(epoch) '.mat'];
-        
-        pars = rmfield(pars,'hids'); % save space...
-        
-        save(fileName,'pars','epoch'); % remember delete pars.hids before!
+        if pars.saveFile
+            fileName = [datestring '_' int2str(epoch) '.mat'];
+            pars = rmfield(pars,'hids'); % save space...
+            save(fileName,'pars','epoch'); % remember delete pars.hids before!
+        end
     end
     
 end
@@ -143,11 +143,11 @@ end
     function grad = factor_GBM_train_inner_grad()
         positiveGrad = factor_GBM_energy_grad(factor_GBM_posdata());
         
-                if pars.sparsitygain > 0
-                    sparsityGrad = factor_GBM_sparsityGrad();
-                else
-                    sparsityGrad = 0;
-                end
+        if pars.sparsitygain > 0
+            sparsityGrad = factor_GBM_sparsityGrad();
+        else
+            sparsityGrad = 0;
+        end
         
         negativeGrad = factor_GBM_energy_grad(factor_GBM_negdata());
         
@@ -191,8 +191,8 @@ end
             pars.hids = factor_GBM_hidprobs(datastates,batch_x);
         end
         
-%         data.outputs = negoutput;
-        data.outputs = datastates;
+        %         data.outputs = negoutput;
+        data.outputs = datastates; % seems this is crucial!!!
         data.hidprobs = pars.hids;
         
         if pars.verbose % output recon and norm
@@ -266,7 +266,7 @@ defaultPars = struct('numin',[],'numout',[],'nummap',256,'numfactors',1024, ...
     'zeromask', 'none','batchsize',500,'numepoch',100,'seed',[],...
     'initMultiplierW',0.05,'batchOrderFixed',false,'weightPenaltyL2',0.001,...
     'everySave',1,'wxf',[],'wyf',[],'whf',[],'wy',[],'wh',[],...
-    'incMax',inf,'numbatches',[],'visType','binary');
+    'incMax',inf,'numbatches',[],'visType','binary','saveFile',true);
 % seed is random seed. (twister).
 end
 
