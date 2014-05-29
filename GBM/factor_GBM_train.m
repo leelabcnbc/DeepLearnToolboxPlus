@@ -90,6 +90,9 @@ if isequal(pars.zeromask,'none')
     pars.zeromask = false(size(pars.inc));
 end
 
+display(pars);
+pause;
+
 for epoch = 1:pars.numepoch
     fprintf('epoch %d\n',epoch);
     if ~pars.batchOrderFixed
