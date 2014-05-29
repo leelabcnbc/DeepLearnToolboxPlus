@@ -1,4 +1,4 @@
-function factor_GBM_train(varargin)
+function pars = factor_GBM_train(varargin)
 % FACTOR_GBM_TRAIN ...
 %
 %   a MATLAB implementation of Roland's CPU GBM.
@@ -56,6 +56,11 @@ else
 end
 
 
+if ~isempty(pars.numbatches) % hack for early quitting.
+    numbatches = pars.numbatches;
+end
+
+pars.numbatches = numbatches;
 
 % initialize weights.
 if isempty(pars.wxf) % in case we can override this.
@@ -86,12 +91,11 @@ if isequal(pars.zeromask,'none')
 end
 
 for epoch = 1:pars.numepoch
-    tic;
     fprintf('epoch %d\n',epoch);
-    if ~rbm.batchOrderFixed
+    if ~pars.batchOrderFixed
         kk = randperm(N);
     else
-        kk = 1:m;
+        kk = 1:N;
     end
     
     for batch = 1:numbatches
@@ -107,6 +111,7 @@ for epoch = 1:pars.numepoch
         
         save(fileName,'pars','epoch'); % remember delete pars.hids before!
     end
+    
 end
 
     function factor_GBM_train_inner()
@@ -124,25 +129,25 @@ end
         assert(all(~isnan(pars.inc)));
         
         % here, I should add them separately.
-        pars.wxf = pars.wxf + pars.inc( 1:pars.numin*pars.numfactors );
-        pars.wyf = pars.wyf + pars.inc( pars.numin*pars.numfactors+1 : (pars.numin+pars.numout)*pars.numfactors );
-        pars.whf = pars.whf + pars.inc( (pars.numin+pars.numout)*pars.numfactors+1 : (pars.numin+pars.numout+pars.nummap)*pars.numfactors );
+        pars.wxf(:) = pars.wxf(:) + pars.inc( 1:pars.numin*pars.numfactors );
+        pars.wyf(:) = pars.wyf(:) + pars.inc( pars.numin*pars.numfactors+1 : (pars.numin+pars.numout)*pars.numfactors );
+        pars.whf(:) = pars.whf(:) + pars.inc( (pars.numin+pars.numout)*pars.numfactors+1 : (pars.numin+pars.numout+pars.nummap)*pars.numfactors );
         
-        pars.wy = pars.wy + pars.inc( (pars.numin+pars.numout+pars.nummap)*pars.numfactors+1 : ...
+        pars.wy(:) = pars.wy(:) + pars.inc( (pars.numin+pars.numout+pars.nummap)*pars.numfactors+1 : ...
             (pars.numin+pars.numout+pars.nummap)*pars.numfactors + pars.numout);
         
-        pars.wh = pars.wh + pars.inc( (pars.numin+pars.numout+pars.nummap)*pars.numfactors + pars.numout + 1 : end );
+        pars.wh(:) = pars.wh(:) + pars.inc( (pars.numin+pars.numout+pars.nummap)*pars.numfactors + pars.numout + 1 : end );
         
     end
 
     function grad = factor_GBM_train_inner_grad()
         positiveGrad = factor_GBM_energy_grad(factor_GBM_posdata());
         
-%         if pars.sparsitygain > 0
-%             sparsityGrad = factor_GBM_sparsityGrad();
-%         else
-%             sparsityGrad = 0;
-%         end
+                if pars.sparsitygain > 0
+                    sparsityGrad = factor_GBM_sparsityGrad();
+                else
+                    sparsityGrad = 0;
+                end
         
         negativeGrad = factor_GBM_energy_grad(factor_GBM_negdata());
         
@@ -186,18 +191,28 @@ end
             pars.hids = factor_GBM_hidprobs(datastates,batch_x);
         end
         
-        data.outputs = negoutput;
+%         data.outputs = negoutput;
+        data.outputs = datastates;
         data.hidprobs = pars.hids;
+        
+        if pars.verbose % output recon and norm
+            fprintf('mean square error: %f\n', sum( (datastates(:)-batch_y(:)).^2) / pars.batchsize   );
+            fprintf('mean norm of w: %f\n', norm([pars.wxf(:); pars.wyf(:); pars.whf(:); pars.wh(:); pars.wy(:)]));
+        end
         
     end
 
     function datastates = factor_GBM_sample_obs(negoutput)
-        if isequal(pars.visType, 'binary')
-            datastates = double( negoutput > rand(size(negoutput)));
+        if ~pars.meanfield_output
+            if isequal(pars.visType, 'binary')
+                datastates = double( negoutput > rand(size(negoutput)));
+            else
+                assert(isequal(pars.visType, 'gaussian'));
+                datastates = negoutput + randn(size(negoutput)); % normal random variable with sigma^2 = 1.
+            end
         else
-            assert(isequal(pars.visType, 'gaussian'));
-            datastates = negoutput + randn(size(negoutput)); % normal random variable with sigma^2 = 1.
-        end 
+            datastates = negoutput;
+        end
     end
 
     function negoutput = factor_GBM_outprobs(hidstates,inputs)
@@ -250,8 +265,8 @@ defaultPars = struct('numin',[],'numout',[],'nummap',256,'numfactors',1024, ...
     'stepsize', 0.01, 'verbose', true, ...
     'zeromask', 'none','batchsize',500,'numepoch',100,'seed',[],...
     'initMultiplierW',0.05,'batchOrderFixed',false,'weightPenaltyL2',0.001,...
-    'everySave',1,'incMax',0.9,'wxf',[],'wyf',[],'whf',[],'wy',[],'wh',[],...
-    'incMax',inf);
+    'everySave',1,'wxf',[],'wyf',[],'whf',[],'wy',[],'wh',[],...
+    'incMax',inf,'numbatches',[],'visType','binary');
 % seed is random seed. (twister).
 end
 
