@@ -86,9 +86,26 @@ end
 pars.inc = zeros(  (pars.numin+pars.numout+pars.nummap)*pars.numfactors + pars.numout + pars.nummap,1 );
 
 % initialize zeromask
+
+pars.zeromaskOriginal = pars.zeromask;
+
 if isequal(pars.zeromask,'none')
     pars.zeromask = false(size(pars.inc));
+elseif isequal(pars.zeromask,'quadrature') % every hidden unit is connected to exactly 2 factors.
+    % maybe extended to other things. 
+    assert(pars.nummap*2 == pars.numfactors);
+    
+    zeroIndex = zeros(pars.nummap*(pars.numfactors-2),1);
+    
+    for iMap = 1:pars.nummap
+        zeroIndex((iMap-1)*(pars.numfactors-2) + 1: (iMap)*(pars.numfactors-2))...
+            = sub2ind(size(pars.whf),repmat(iMap,1,pars.numfactors-2),setdiff(1:pars.numfactors,[2*iMap-1, 2*iMap]));
+    end
+    pars.whf(zeroIndex) = 0; % test passed.
+    pars.zeromask = false(size(pars.inc));
+    pars.zeromask(zeroIndex+(pars.numin+pars.numout)*pars.numfactors) = true;
 end
+    
 
 display(pars);
 pause;
@@ -120,6 +137,10 @@ end
     function factor_GBM_train_inner()
         gradThis = factor_GBM_train_inner_grad();
         pars.inc = pars.momentum*pars.inc - pars.stepsize*gradThis;
+        
+        % set something to zero.
+        pars.inc(pars.zeromask) = 0;
+        
         ninc =norm(pars.inc);
         fprintf('norm of inc: %f\n',ninc);
         
