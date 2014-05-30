@@ -28,7 +28,8 @@ if s==floor(s) || (s1 ~=0 && s2 ~=0)
     x=0;
     y=0;
     for i=1:N
-        im = reshape(X(:,i),s1,s2)';
+%         im = reshape(X(:,i),s1,s2)'; % remove this transpose!
+        im = reshape(X(:,i),s1,s2); % remove this transpose!
         a(x*s2+1+x : x*s2+s2+x, y*s1+1+y : y*s1+s1+y)=im;
         x=x+1;
         if(x>=numRow)

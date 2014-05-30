@@ -101,9 +101,24 @@ elseif isequal(pars.zeromask,'quadrature') % every hidden unit is connected to e
         zeroIndex((iMap-1)*(pars.numfactors-2) + 1: (iMap)*(pars.numfactors-2))...
             = sub2ind(size(pars.whf),repmat(iMap,1,pars.numfactors-2),setdiff(1:pars.numfactors,[2*iMap-1, 2*iMap]));
     end
+    
+    
+    
+    
+    
     pars.whf(zeroIndex) = 0; % test passed.
+    
+    if pars.zeromaskAdditional
+        pars.whf(pars.whf~=0) = 1; % all other weights to be one.
+    end
+    
     pars.zeromask = false(size(pars.inc));
-    pars.zeromask(zeroIndex+(pars.numin+pars.numout)*pars.numfactors) = true;
+    
+    if ~pars.zeromaskAdditional
+        pars.zeromask(zeroIndex+(pars.numin+pars.numout)*pars.numfactors) = true;
+    else % pars.whf is now fixed.
+        pars.zeromask((pars.numin+pars.numout)*pars.numfactors+1:(pars.numin+pars.numout+pars.nummap)*pars.numfactors) = true;
+    end
 end
     
 
@@ -294,7 +309,8 @@ defaultPars = struct('numin',[],'numout',[],'nummap',256,'numfactors',1024, ...
     'zeromask', 'none','batchsize',500,'numepoch',100,'seed',[],...
     'initMultiplierW',0.05,'batchOrderFixed',false,'weightPenaltyL2',0.001,...
     'everySave',1,'wxf',[],'wyf',[],'whf',[],'wy',[],'wh',[],...
-    'incMax',inf,'numbatches',[],'visType','binary','saveFile',true);
+    'incMax',inf,'numbatches',[],'visType','binary','saveFile',true,'zeromaskOriginal',[],...
+    'zeromaskAdditional','false');
 % seed is random seed. (twister).
 end
 
