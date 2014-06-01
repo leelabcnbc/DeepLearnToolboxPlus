@@ -1,5 +1,5 @@
-function pars = factor_GBM_train(varargin)
-% FACTOR_GBM_TRAIN ...
+function pars = factor_GBM_train_old(varargin)
+% FACTOR_GBM_TRAIN_OLD ...
 %
 %   a MATLAB implementation of Roland's CPU GBM.
 %
@@ -11,7 +11,7 @@ function pars = factor_GBM_train(varargin)
 
 %% DATE      : 28-May-2014 16:17:01 $
 %% DEVELOPED : 8.1.0.604 (R2013a)
-%% FILENAME  : factor_GBM_train.m
+%% FILENAME  : factor_GBM_train_old.m
 
 % format for varargin:
 % numin, numout, nummap, numfactors, sparsitygain, targethidprobs,
@@ -211,17 +211,17 @@ end
         data = struct();
         data.inputs = batch_x;
         data.outputs = batch_y;
-        data.hidprobs = factor_GBM_hidprobs_outer(batch_y,batch_x,pars);
+        data.hidprobs = factor_GBM_hidprobs(batch_y,batch_x);
         pars.hids = data.hidprobs; % this is just used for further use of negative phase.
         return;
     end
 
-%     function hidprobs = factor_GBM_hidprobs(outputs,inputs) % this is used in CD as well.
-%         % we just assume binary hidden unit.
-%         factors_x = inputs*pars.wxf;
-%         factors_y = outputs*pars.wyf;
-%         hidprobs = sigm(bsxfun(@plus, (factors_x.*factors_y)*(pars.whf'), pars.wh'));  %  [N x numfactor] x [numfactor x nummap]
-%     end
+    function hidprobs = factor_GBM_hidprobs(outputs,inputs) % this is used in CD as well.
+        % we just assume binary hidden unit.
+        factors_x = inputs*pars.wxf;
+        factors_y = outputs*pars.wyf;
+        hidprobs = sigm(bsxfun(@plus, (factors_x.*factors_y)*(pars.whf'), pars.wh'));  %  [N x numfactor] x [numfactor x nummap]
+    end
 
     function data = factor_GBM_negdata()
         data = struct();
@@ -235,7 +235,7 @@ end
             end
             negoutput = factor_GBM_outprobs(hidstates,batch_x);
             datastates = factor_GBM_sample_obs(negoutput);
-            pars.hids = factor_GBM_hidprobs_outer(datastates,batch_x,pars);
+            pars.hids = factor_GBM_hidprobs(datastates,batch_x);
         end
         
         %         data.outputs = negoutput;
@@ -327,4 +327,4 @@ end
 
 % Created with NEWFCN.m by Frank González-Morphy
 % Contact...: frank.gonzalez-morphy@mathworks.de
-% ===== EOF ====== [factor_GBM_train.m] ======
+% ===== EOF ====== [factor_GBM_train_old.m] ======
