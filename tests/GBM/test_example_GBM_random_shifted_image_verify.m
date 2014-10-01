@@ -61,13 +61,13 @@ for iTestImage = 1:N
     
     close all;
     
-    subplot(3,1,1);
-    imagesc(reshape(xImageThis,sideSize,sideSize)); colormap gray;
+    subplot(3,1,1); 
+    imagesc(reshape(xImageThis,sideSize,sideSize)); colormap gray;  axis image; title('left')
     subplot(3,1,2);
-    imagesc(reshape(yImageThis,sideSize,sideSize)); colormap gray;
+    imagesc(reshape(yImageThis,sideSize,sideSize)); colormap gray; axis image; title('right');
     subplot(3,1,3);
-    imagesc(reshape(reconstructedYImage,sideSize,sideSize)); colormap gray;
-    
+    imagesc(reshape(reconstructedYImage,sideSize,sideSize)); colormap gray;axis image; title('right inferred');
+     
     fprintf('error rate: %d/%d = %f\n', sum(reconstructedYImage~=yImageThis),sideSize*sideSize, sum(reconstructedYImage~=yImageThis)/sideSize*sideSize);
     
     
