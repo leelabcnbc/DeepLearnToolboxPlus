@@ -48,7 +48,15 @@ rng(0,'twister'); %reproducible...
 dbnV1 = dbntrain(dbn, train_x);
 
 %% train V2
-train_x = rbmup(dbnV1.rbm{1},train_x);
+
+sigma = dbnV1.rbm{1}.sigmaFinal;
+if sigma > opts.sigmaMin
+    sigma = sigma*opts.sigmaDecay;
+end
+
+train_x = rbmup(dbnV1.rbm{1},train_x,sigma); % fix sigma problem in old implementation.
+
+
 dbn = struct();
 opts = struct();
 dbn.sizes = [200]; %again 200 hidden units.
