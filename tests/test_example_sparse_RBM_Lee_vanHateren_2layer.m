@@ -44,11 +44,6 @@ opts = expandOpts(opts,numel(dbn.sizes));
 
 dbn = dbnsetup(dbn, train_x, opts);
 
-rng(0,'twister');
-WinitV1 = 0.1*randn(size(dbn.rbm{1}.W,2),size(dbn.rbm{1}.W,1))';
-dbn.rbm{1}.W = WinitV1;
-dbn.rbm{1}.initialized = true;
-
 rng(0,'twister'); %reproducible...
 dbnV1 = dbntrain(dbn, train_x);
 
@@ -78,15 +73,10 @@ opts = expandOpts(opts,numel(dbn.sizes));
 dbn = dbnsetup(dbn, train_x, opts);
 
 rng(0,'twister');
-WinitV2 = 0.1*randn(size(dbn.rbm{1}.W,2),size(dbn.rbm{1}.W,1))';
-dbn.rbm{1}.W = WinitV2;
-dbn.rbm{1}.initialized = true;
-
-rng(0,'twister');
 dbnV2 = dbntrain(dbn, train_x);
 
 save('sparseRBM_reference.mat',...
-    'dbnV1','dbnV2','WinitV1','WinitV2');
+    'dbnV1','dbnV2');
 
 end
 
